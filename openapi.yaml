@@ -1,0 +1,6 @@
+components:
+  schemas: {}
+info:
+  title: PyPI Server
+  version: 0.0.0.dev0
+openapi: 3.1.0
