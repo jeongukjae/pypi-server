@@ -1,46 +1,70 @@
 package main
 
-//go:generate go run main.go openapi openapi.yaml
-
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	"github.com/danielgtaylor/huma/v2"
-	"github.com/danielgtaylor/huma/v2/adapters/humago"
-	"github.com/danielgtaylor/huma/v2/humacli"
-	"github.com/spf13/cobra"
+	"github.com/labstack/echo/v4"
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+
+	"github.com/jeongukjae/pypi-server/internal/config"
+	"github.com/jeongukjae/pypi-server/internal/routes"
+	"github.com/jeongukjae/pypi-server/internal/storage"
 )
 
 func main() {
-	var api huma.API
+	cfg := config.MustInit()
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	logLevel, err := zerolog.ParseLevel(cfg.LogLevel)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Invalid log level")
+	}
+	zerolog.SetGlobalLevel(logLevel)
 
-	cli := humacli.New(func(hooks humacli.Hooks, options *struct{}) {
-		router := http.NewServeMux()
-		api = humago.New(router, huma.DefaultConfig("PyPI Server", "0.0.0.dev0"))
+	strg, err := storage.New(&cfg.Storage)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize storage")
+	}
 
-		hooks.OnStart(func() {
-			http.ListenAndServe(fmt.Sprintf(":%d", 3000), router)
-		})
-	})
+	e := echo.New()
+	e.HideBanner = true
+	e.HidePort = true
 
-	cli.Root().AddCommand(&cobra.Command{
-		Use:   "openapi",
-		Short: "Print the OpenAPI spec",
-		Run: func(cmd *cobra.Command, args []string) {
-			outputFile := "openapi.yaml"
-			if len(args) > 0 {
-				outputFile = args[0]
-			}
+	routes.SetupSimpleRoutes(e, strg)
 
-			b, _ := api.OpenAPI().YAML()
-			fmt.Printf("Writing OpenAPI spec to %s\n", outputFile)
-			if err := os.WriteFile(outputFile, b, 0644); err != nil {
-				fmt.Printf("Error writing file: %v\n", err)
-			}
-		},
-	})
+	go func() {
+		addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
+		log.Info().Msgf("Starting server at %s", addr)
+		if err := e.Start(addr); err != nil && errors.Is(err, http.ErrServerClosed) {
+			log.Fatal().Err(err).Msg("Server error")
+		}
+	}()
 
-	cli.Run()
+	quit := make(chan os.Signal, 2)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+
+	<-quit
+
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(cfg.Server.GracefulShutdownSeconds))
+	defer cancel()
+
+	log.Info().Msg("Shutting down server")
+	if err := e.Shutdown(ctx); err != nil {
+		log.Error().Err(err).Msg("Error shutting down server")
+	}
+
+	log.Info().Msg("Closing storage")
+	if err := strg.Close(); err != nil {
+		log.Error().Err(err).Msg("Error closing storage")
+	}
+
+	log.Info().Msg("Server stopped")
 }
