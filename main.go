@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -37,7 +38,29 @@ func main() {
 	e.HideBanner = true
 	e.HidePort = true
 
+	e.Use(middleware.Recover())
+	e.Use(middleware.RequestID())
+
+	if cfg.Server.EnableAccessLogger {
+		e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+			LogURI:      true,
+			LogStatus:   true,
+			LogError:    true,
+			HandleError: true,
+			LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+				reqID := c.Response().Header().Get(echo.HeaderXRequestID)
+				if v.Error == nil {
+					log.Info().Str("URI", v.URI).Int("status", v.Status).Str("requestId", reqID).Msg("request")
+				} else {
+					log.Error().Str("URI", v.URI).Int("status", v.Status).Str("requestId", reqID).Err(v.Error).Msg("request")
+				}
+				return nil
+			},
+		}))
+	}
+
 	routes.SetupSimpleRoutes(e, strg)
+	routes.SetupLegacyRoutes(e, strg)
 
 	go func() {
 		addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)

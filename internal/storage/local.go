@@ -18,6 +18,10 @@ func NewLocalStorage(path string) (*LocalStorage, error) {
 func (s *LocalStorage) ListPackages(context.Context) ([]string, error) {
 	osFiles, err := os.ReadDir(s.path)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return []string{}, nil
+		}
+
 		return nil, err
 	}
 
@@ -34,6 +38,10 @@ func (s *LocalStorage) ListPackages(context.Context) ([]string, error) {
 func (s *LocalStorage) ListPackageFiles(_ context.Context, packageName string) ([]string, error) {
 	osFiles, err := os.ReadDir(path.Join(s.path, packageName))
 	if err != nil {
+		if os.IsNotExist(err) {
+			return []string{}, nil
+		}
+
 		return nil, err
 	}
 

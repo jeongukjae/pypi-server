@@ -12,6 +12,7 @@ type ServerConfig struct {
 	Port                     int    `mapstructure:"port"`
 	ReadHeaderTimeoutSeconds int    `mapstructure:"read_header_timeout_seconds"`
 	GracefulShutdownSeconds  int    `mapstructure:"graceful_shutdown_seconds"`
+	EnableAccessLogger       bool   `mapstructure:"enable_access_logger"`
 }
 
 type StorageConfig struct {
@@ -31,6 +32,8 @@ func MustInit() *Config {
 	viper.SetDefault("server.host", "")
 	viper.SetDefault("server.port", 3000)
 	viper.SetDefault("server.read_header_timeout_seconds", 5)
+	viper.SetDefault("server.graceful_shutdown_seconds", 10)
+	viper.SetDefault("server.enable_access_logger", true)
 	viper.SetDefault("storage.kind", "local")
 	viper.SetDefault("storage.path", "./data")
 
