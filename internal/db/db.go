@@ -5,18 +5,32 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/tern/v2/migrate"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 
 	"github.com/jeongukjae/pypi-server/internal/config"
+	"github.com/jeongukjae/pypi-server/internal/db/dbgen"
 )
 
 //go:generate go tool go.uber.org/mock/mockgen -source=db.go -destination=./db_mock.go -package=db Store
 
+type ListReleasesByPackageNameSimpleRow struct {
+	Version         string
+	FileName        string
+	FileType        *string
+	Md5Digest       *string
+	Sha256Digest    *string
+	Blake2256Digest *string
+	RequiresPython  *string
+}
+
 type Store interface {
 	Migrate(ctx context.Context, migrationQueryPath string) error
+	ListPackagesSimple(ctx context.Context) ([]string, error)
+	ListReleasesByPackageNameSimple(ctx context.Context, packageName string) ([]ListReleasesByPackageNameSimpleRow, error)
 	Close(ctx context.Context) error
 }
 
@@ -75,7 +89,45 @@ func (d *db) Migrate(ctx context.Context, migrationQueryPath string) error {
 	return nil
 }
 
+func (d *db) ListPackagesSimple(ctx context.Context) ([]string, error) {
+	querier := dbgen.New(d.pool)
+	packages, err := querier.ListPackagesSimple(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to list packages")
+	}
+	return packages, nil
+}
+
+func (d *db) ListReleasesByPackageNameSimple(ctx context.Context, packageName string) ([]ListReleasesByPackageNameSimpleRow, error) {
+	querier := dbgen.New(d.pool)
+	rows, err := querier.ListReleasesByPackageNameSimple(ctx, pgtype.Text{String: packageName, Valid: true})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to list releases by package name")
+	}
+
+	result := make([]ListReleasesByPackageNameSimpleRow, len(rows))
+	for i, row := range rows {
+		result[i] = ListReleasesByPackageNameSimpleRow{
+			Version:         row.Version,
+			FileName:        row.FileName.String,
+			FileType:        getStringFromText(row.FileType),
+			Md5Digest:       getStringFromText(row.Md5Digest),
+			Sha256Digest:    getStringFromText(row.Sha256Digest),
+			Blake2256Digest: getStringFromText(row.Blake2256Digest),
+			RequiresPython:  getStringFromText(row.RequiresPython),
+		}
+	}
+	return result, nil
+}
+
 func (d *db) Close(ctx context.Context) error {
 	d.pool.Close()
 	return nil
+}
+
+func getStringFromText(t pgtype.Text) *string {
+	if !t.Valid {
+		return nil
+	}
+	return &t.String
 }

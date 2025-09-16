@@ -54,6 +54,36 @@ func (mr *MockStoreMockRecorder) Close(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockStore)(nil).Close), ctx)
 }
 
+// ListPackagesSimple mocks base method.
+func (m *MockStore) ListPackagesSimple(ctx context.Context) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListPackagesSimple", ctx)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListPackagesSimple indicates an expected call of ListPackagesSimple.
+func (mr *MockStoreMockRecorder) ListPackagesSimple(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPackagesSimple", reflect.TypeOf((*MockStore)(nil).ListPackagesSimple), ctx)
+}
+
+// ListReleasesByPackageNameSimple mocks base method.
+func (m *MockStore) ListReleasesByPackageNameSimple(ctx context.Context, packageName string) ([]ListReleasesByPackageNameSimpleRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListReleasesByPackageNameSimple", ctx, packageName)
+	ret0, _ := ret[0].([]ListReleasesByPackageNameSimpleRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListReleasesByPackageNameSimple indicates an expected call of ListReleasesByPackageNameSimple.
+func (mr *MockStoreMockRecorder) ListReleasesByPackageNameSimple(ctx, packageName any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListReleasesByPackageNameSimple", reflect.TypeOf((*MockStore)(nil).ListReleasesByPackageNameSimple), ctx, packageName)
+}
+
 // Migrate mocks base method.
 func (m *MockStore) Migrate(ctx context.Context, migrationQueryPath string) error {
 	m.ctrl.T.Helper()
