@@ -7,9 +7,10 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/tern/v2/migrate"
-	"github.com/jeongukjae/pypi-server/internal/config"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+
+	"github.com/jeongukjae/pypi-server/internal/config"
 )
 
 //go:generate go tool go.uber.org/mock/mockgen -source=db.go -destination=./db_mock.go -package=db Store
