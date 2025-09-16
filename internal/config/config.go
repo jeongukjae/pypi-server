@@ -20,14 +20,29 @@ type StorageConfig struct {
 	Path string `mapstructure:"path"`
 }
 
+type DatabaseConfig struct {
+	Enabled bool `mapstructure:"enabled"`
+
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	User     string `mapstructure:"user"`
+	Password string `mapstructure:"password"`
+	DBName   string `mapstructure:"dbname"`
+	SSLMode  string `mapstructure:"sslmode"`
+
+	MigrationPath      string `mapstructure:"migration_path"`
+	MigrationTableName string `mapstructure:"migration_table_name"`
+}
+
 type Config struct {
-	Server  ServerConfig  `mapstructure:"server"`
-	Storage StorageConfig `mapstructure:"storage"`
+	Server   ServerConfig   `mapstructure:"server"`
+	Storage  StorageConfig  `mapstructure:"storage"`
+	Database DatabaseConfig `mapstructure:"database"`
 
 	LogLevel string `mapstructure:"log_level"`
 }
 
-func MustInit() *Config {
+func MustInit(configFilePath *string) *Config {
 	viper.SetDefault("log_level", "info")
 	viper.SetDefault("server.host", "")
 	viper.SetDefault("server.port", 3000)
@@ -36,10 +51,21 @@ func MustInit() *Config {
 	viper.SetDefault("server.enable_access_logger", true)
 	viper.SetDefault("storage.kind", "local")
 	viper.SetDefault("storage.path", "./data")
+	viper.SetDefault("database.enabled", false)
+
+	viper.SetDefault("database.migration_path", "./queries/migrations")
+	viper.SetDefault("database.migration_table_name", "_migrations")
 
 	viper.AutomaticEnv()
 	viper.EnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.SetEnvPrefix("PYPI_SERVER")
+
+	if configFilePath != nil && *configFilePath != "" {
+		viper.SetConfigFile(*configFilePath)
+		if err := viper.ReadInConfig(); err != nil {
+			log.Fatal().Err(err).Msg("failed to read config file")
+		}
+	}
 
 	cfg := &Config{}
 	if err := viper.Unmarshal(cfg); err != nil {

@@ -6,10 +6,11 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
 
+	"github.com/jeongukjae/pypi-server/internal/db"
 	"github.com/jeongukjae/pypi-server/internal/storage"
 )
 
-func SetupSimpleRoutes(e *echo.Echo, strg storage.Storage) {
+func SetupSimpleRoutes(e *echo.Echo, strg storage.Storage, dbstore db.Store) {
 	e.GET("/simple/", ListPackages(strg))
 	e.GET("/simple/:package/", ListPackageFiles(strg))
 	e.GET("/simple/:package/:file", DownloadFile(strg))

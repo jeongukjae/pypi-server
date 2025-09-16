@@ -1,7 +1,10 @@
 package main
 
+//go:generate go tool github.com/sqlc-dev/sqlc/cmd/sqlc generate
+
 import (
 	"context"
+	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -16,12 +19,16 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/jeongukjae/pypi-server/internal/config"
+	"github.com/jeongukjae/pypi-server/internal/db"
 	"github.com/jeongukjae/pypi-server/internal/routes"
 	"github.com/jeongukjae/pypi-server/internal/storage"
 )
 
 func main() {
-	cfg := config.MustInit()
+	configFilePath := flag.String("config", "", "Path to config file")
+	flag.Parse()
+
+	cfg := config.MustInit(configFilePath)
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	logLevel, err := zerolog.ParseLevel(cfg.LogLevel)
 	if err != nil {
@@ -32,6 +39,23 @@ func main() {
 	strg, err := storage.New(&cfg.Storage)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize storage")
+	}
+
+	var dbstore db.Store
+
+	if cfg.Database.Enabled {
+		ctx := context.Background()
+
+		log.Info().Msg("Initializing database")
+		dbstore, err = db.New(ctx, &cfg.Database)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to initialize database")
+		}
+
+		log.Info().Msg("Migrating database")
+		if err := dbstore.Migrate(ctx, cfg.Database.MigrationPath); err != nil {
+			log.Fatal().Err(err).Msg("Failed to migrate database")
+		}
 	}
 
 	e := echo.New()
@@ -59,8 +83,8 @@ func main() {
 		}))
 	}
 
-	routes.SetupSimpleRoutes(e, strg)
-	routes.SetupLegacyRoutes(e, strg)
+	routes.SetupSimpleRoutes(e, strg, dbstore)
+	routes.SetupLegacyRoutes(e, strg, dbstore)
 
 	go func() {
 		addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
@@ -87,6 +111,13 @@ func main() {
 	log.Info().Msg("Closing storage")
 	if err := strg.Close(); err != nil {
 		log.Error().Err(err).Msg("Error closing storage")
+	}
+
+	if dbstore != nil {
+		log.Info().Msg("Closing database")
+		if err := dbstore.Close(ctx); err != nil {
+			log.Error().Err(err).Msg("Error closing database")
+		}
 	}
 
 	log.Info().Msg("Server stopped")
