@@ -63,7 +63,6 @@ func main() { //nolint:funlen // Function length is acceptable here for the sake
 	e.HideBanner = true
 	e.HidePort = true
 
-	e.Pre(middleware.AddTrailingSlash())
 	e.Use(middleware.Recover())
 	e.Use(middleware.RequestID())
 
