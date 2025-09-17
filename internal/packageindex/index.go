@@ -52,6 +52,8 @@ func (i *index) ListPackages(ctx context.Context) ([]string, error) {
 }
 
 func (i *index) ListPackageFiles(ctx context.Context, packageName string) ([]PackageFile, error) {
+	packageName = NormalizePackageName(packageName)
+
 	if i.dbstore != nil {
 		rows, err := i.dbstore.ListReleasesByPackageNameSimple(ctx, packageName)
 		if err != nil {
@@ -101,6 +103,8 @@ func (i *index) ListPackageFiles(ctx context.Context, packageName string) ([]Pac
 }
 
 func (i *index) DownloadFile(ctx context.Context, packageName, fileName string) (io.ReadCloser, error) {
+	packageName = NormalizePackageName(packageName)
+
 	return i.strg.ReadFile(ctx, packageName, fileName)
 }
 
