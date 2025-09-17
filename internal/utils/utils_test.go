@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestVersionCheck(t *testing.T) {
@@ -21,7 +22,7 @@ func TestVersionCheck(t *testing.T) {
 	for _, input := range tests {
 		t.Run(input, func(t *testing.T) {
 			v, err := ParseVersion(input)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, input, v.String())
 		})
 	}
@@ -116,7 +117,7 @@ func TestParseVersion(t *testing.T) {
 				return
 			}
 
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, tt.want, got)
 		})
 	}

@@ -6,7 +6,6 @@ import (
 	"path"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 
@@ -157,12 +156,4 @@ func (i *index) UploadFile(ctx context.Context, req UploadFileRequest, content i
 
 func pointer[T any](v T) *T {
 	return &v
-}
-
-func stringPointerToPgText(p *string) pgtype.Text {
-	if p == nil {
-		return pgtype.Text{Valid: false}
-	}
-
-	return pgtype.Text{String: *p, Valid: true}
 }

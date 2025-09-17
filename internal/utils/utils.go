@@ -17,33 +17,34 @@ type Version struct {
 	Local         *string
 }
 
-// 1: v < other
-// 0: v == other
-// -1: v > other
-func (v1 *Version) Compare(v2 *Version) int { // 1. Epoch
-	if v1.Epoch != nil && v2.Epoch != nil {
-		if *v1.Epoch > *v2.Epoch {
+//nolint:gocyclo // Complexity is acceptable here for the sake of clarity.
+func (v *Version) Compare(v2 *Version) int {
+	// 1: v < other
+	// 0: v == other
+	// -1: v > other
+
+	// 1. Epoch
+	switch {
+	case v.Epoch != nil && v2.Epoch != nil:
+		if *v.Epoch > *v2.Epoch {
 			return 1
 		}
-		if *v1.Epoch < *v2.Epoch {
+		if *v.Epoch < *v2.Epoch {
 			return -1
 		}
-	} else if v1.Epoch != nil {
+	case v.Epoch != nil:
 		return 1
-	} else if v2.Epoch != nil {
+	case v2.Epoch != nil:
 		return -1
 	}
 
 	// 2. Release
-	maxLen := len(v1.Releases)
-	if len(v2.Releases) > maxLen {
-		maxLen = len(v2.Releases)
-	}
+	maxLen := max(len(v2.Releases), len(v.Releases))
 
-	for i := 0; i < maxLen; i++ {
+	for i := range maxLen {
 		r1 := int64(0)
-		if i < len(v1.Releases) {
-			r1 = v1.Releases[i]
+		if i < len(v.Releases) {
+			r1 = v.Releases[i]
 		}
 		r2 := int64(0)
 		if i < len(v2.Releases) {
@@ -58,77 +59,81 @@ func (v1 *Version) Compare(v2 *Version) int { // 1. Epoch
 	}
 
 	// 3. Pre-release
-	if v1.PreRelease == nil && v2.PreRelease != nil {
+	if v.PreRelease == nil && v2.PreRelease != nil {
 		return 1
 	}
-	if v1.PreRelease != nil && v2.PreRelease == nil {
+	if v.PreRelease != nil && v2.PreRelease == nil {
 		return -1
 	}
 
 	preReleaseOrder := map[string]int{"a": 1, "b": 2, "rc": 3}
-	v1PreOrder := preReleaseOrder[strings.ToLower(v1.PreReleaseTag)]
+	vPreOrder := preReleaseOrder[strings.ToLower(v.PreReleaseTag)]
 	v2PreOrder := preReleaseOrder[strings.ToLower(v2.PreReleaseTag)]
 
-	if v1PreOrder > v2PreOrder {
+	if vPreOrder > v2PreOrder {
 		return 1
 	}
-	if v1PreOrder < v2PreOrder {
+	if vPreOrder < v2PreOrder {
 		return -1
 	}
 
-	if v1.PreRelease != nil && v2.PreRelease != nil {
-		if *v1.PreRelease > *v2.PreRelease {
+	switch {
+	case v.PreRelease != nil && v2.PreRelease != nil:
+		if *v.PreRelease > *v2.PreRelease {
 			return 1
 		}
-		if *v1.PreRelease < *v2.PreRelease {
+		if *v.PreRelease < *v2.PreRelease {
 			return -1
 		}
-	} else if v1.PreRelease != nil {
+	case v.PreRelease != nil:
 		// A release with a pre-release is always smaller than a full release.
 		return -1
-	} else if v2.PreRelease != nil {
+	case v2.PreRelease != nil:
 		return 1
 	}
 
 	// 4. Post-release
-	if v1.PostRelease != nil && v2.PostRelease != nil {
-		if *v1.PostRelease > *v2.PostRelease {
+	switch {
+	case v.PostRelease != nil && v2.PostRelease != nil:
+		if *v.PostRelease > *v2.PostRelease {
 			return 1
 		}
-		if *v1.PostRelease < *v2.PostRelease {
+		if *v.PostRelease < *v2.PostRelease {
 			return -1
 		}
-	} else if v1.PostRelease != nil {
+	case v.PostRelease != nil:
 		return 1
-	} else if v2.PostRelease != nil {
+	case v2.PostRelease != nil:
 		return -1
 	}
 
 	// 5. Dev-release
-	if v1.DevRelease != nil && v2.DevRelease != nil {
-		if *v1.DevRelease > *v2.DevRelease {
+	switch {
+	case v.DevRelease != nil && v2.DevRelease != nil:
+		if *v.DevRelease > *v2.DevRelease {
 			return 1
 		}
-		if *v1.DevRelease < *v2.DevRelease {
+		if *v.DevRelease < *v2.DevRelease {
 			return -1
 		}
-	} else if v1.DevRelease != nil {
+	case v.DevRelease != nil:
 		return -1
-	} else if v2.DevRelease != nil {
+	case v2.DevRelease != nil:
 		return 1
 	}
 
 	// 6. Local version identifier
-	if v1.Local != nil && v2.Local != nil {
-		if *v1.Local > *v2.Local {
+	switch {
+	case v.Local != nil && v2.Local != nil:
+		if *v.Local > *v2.Local {
 			return 1
 		}
-		if *v1.Local < *v2.Local {
+		if *v.Local < *v2.Local {
 			return -1
 		}
-	} else if v1.Local != nil {
+	case v.Local != nil:
 		return 1
-	} else if v2.Local != nil {
+	case v2.Local != nil:
 		return -1
 	}
 
@@ -210,7 +215,7 @@ func ParseVersion(version string) (*Version, error) {
 		}
 
 		if releases[i] == "" {
-			return nil, fmt.Errorf("Release segment must not be empty: %q", version)
+			return nil, fmt.Errorf("release segment must not be empty: %q", version)
 		}
 
 		segment, err := strconv.ParseInt(releases[i], 10, 64)

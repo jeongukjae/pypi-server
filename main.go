@@ -25,7 +25,7 @@ import (
 	"github.com/jeongukjae/pypi-server/internal/storage"
 )
 
-func main() {
+func main() { //nolint:funlen // Function length is acceptable here for the sake of clarity.
 	configFilePath := flag.String("config", "", "Path to config file")
 	flag.Parse()
 

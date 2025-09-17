@@ -62,7 +62,7 @@ func (s *LocalStorage) ReadFile(_ context.Context, filepath string) (io.ReadClos
 func (s *LocalStorage) WriteFile(_ context.Context, filepath string, content io.Reader) error {
 	fullPath := path.Join(s.path, filepath)
 	parentPath := path.Dir(fullPath)
-	if err := os.MkdirAll(parentPath, 0755); err != nil {
+	if err := os.MkdirAll(parentPath, 0750); err != nil {
 		return err
 	}
 

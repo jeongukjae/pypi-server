@@ -3,7 +3,9 @@ package db
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
+	"strconv"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -62,11 +64,10 @@ func NewStore(ctx context.Context, cfg *config.DatabaseConfig) (Store, error) {
 	pool, err := pgxpool.New(
 		ctx,
 		fmt.Sprintf(
-			"postgresql://%s:%s@%s:%d/%s?sslmode=%s",
+			"postgresql://%s:%s@%s/%s?sslmode=%s",
 			cfg.User,
 			cfg.Password,
-			cfg.Host,
-			cfg.Port,
+			net.JoinHostPort(cfg.Host, strconv.Itoa(cfg.Port)),
 			cfg.DBName,
 			cfg.SSLMode,
 		),
@@ -113,7 +114,7 @@ func (d *db) Migrate(ctx context.Context, migrationQueryPath string) error {
 	return nil
 }
 
-func (d *db) Close(ctx context.Context) error {
+func (d *db) Close(_ context.Context) error {
 	d.pool.Close()
 	return nil
 }
@@ -136,7 +137,7 @@ func (d *db) ListPackages(ctx context.Context) ([]string, error) {
 	return packages, nil
 }
 
-func (d *db) CreateRelease(ctx context.Context, arg CreateReleaseRequest) error {
+func (d *db) CreateRelease(ctx context.Context, arg CreateReleaseRequest) error { //nolint:funlen // Function length is acceptable here for the sake of clarity.
 	version, err := utils.ParseVersion(arg.Version)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse version")
@@ -237,6 +238,7 @@ func (d *db) CreateRelease(ctx context.Context, arg CreateReleaseRequest) error 
 		}
 	}
 
+	// 5. Then we can commit the transaction
 	log.Debug().Str("package", arg.PackageName).Str("version", arg.Version).Msg("Committing transaction")
 	if err := tx.Commit(ctx); err != nil {
 		return errors.Wrap(err, "failed to commit transaction")
