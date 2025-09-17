@@ -20,6 +20,7 @@ import (
 
 	"github.com/jeongukjae/pypi-server/internal/config"
 	"github.com/jeongukjae/pypi-server/internal/db"
+	"github.com/jeongukjae/pypi-server/internal/packageindex"
 	"github.com/jeongukjae/pypi-server/internal/routes"
 	"github.com/jeongukjae/pypi-server/internal/storage"
 )
@@ -58,10 +59,13 @@ func main() {
 		}
 	}
 
+	index := packageindex.NewIndex(strg, dbstore)
+
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
 
+	e.Pre(middleware.AddTrailingSlash())
 	e.Use(middleware.Recover())
 	e.Use(middleware.RequestID())
 
@@ -83,7 +87,7 @@ func main() {
 		}))
 	}
 
-	routes.SetupSimpleRoutes(e, strg, dbstore)
+	routes.SetupSimpleRoutes(e, index)
 	routes.SetupLegacyRoutes(e, strg, dbstore)
 
 	go func() {
