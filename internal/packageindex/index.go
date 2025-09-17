@@ -3,16 +3,21 @@ package packageindex
 import (
 	"context"
 	"io"
+	"path"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 
 	"github.com/jeongukjae/pypi-server/internal/db"
 	"github.com/jeongukjae/pypi-server/internal/storage"
+	"github.com/jeongukjae/pypi-server/internal/utils"
 )
 
 type PackageFile struct {
 	FileName string
-	FileType *string
+	FileType string
 
 	HashType  *string
 	HashValue *string
@@ -23,10 +28,29 @@ type PackageFile struct {
 	HasGpgSignature bool
 }
 
+type UploadFileRequest struct {
+	PackageName string
+	Version     string
+	FileName    string
+	FileType    string
+
+	MetadataVersion        string
+	Summary                *string
+	Description            *string
+	DescriptionContentType *string
+	Pyversion              *string
+	RequiresPython         *string
+	RequiresDist           []string
+	Md5Digest              *string
+	Sha256Digest           *string
+	Blake2256Digest        *string
+}
+
 type Index interface {
 	ListPackages(ctx context.Context) ([]string, error)
 	ListPackageFiles(ctx context.Context, packageName string) ([]PackageFile, error)
 	DownloadFile(ctx context.Context, packageName, fileName string) (io.ReadCloser, error)
+	UploadFile(ctx context.Context, req UploadFileRequest, content io.Reader) error
 }
 
 func NewIndex(
@@ -45,69 +69,100 @@ type index struct {
 }
 
 func (i *index) ListPackages(ctx context.Context) ([]string, error) {
-	if i.dbstore != nil {
-		return i.dbstore.ListPackagesSimple(ctx)
-	}
-	return i.strg.ListPackages(ctx)
+	return i.dbstore.ListPackages(ctx)
 }
 
 func (i *index) ListPackageFiles(ctx context.Context, packageName string) ([]PackageFile, error) {
-	packageName = NormalizePackageName(packageName)
+	packageName = utils.NormalizePackageName(packageName)
 
-	if i.dbstore != nil {
-		rows, err := i.dbstore.ListReleasesByPackageNameSimple(ctx, packageName)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to list package files from database")
-		}
-
-		// Add hash sum and py version info as PEP 503 suggests
-		// https://peps.python.org/pep-0503/#specification
-		files := make([]PackageFile, len(rows))
-		for j, row := range rows {
-			files[j] = PackageFile{
-				FileName:        row.FileName,
-				FileType:        row.FileType,
-				HashType:        nil,
-				HashValue:       nil,
-				RequiresPython:  row.RequiresPython,
-				HasGpgSignature: false,
-			}
-
-			switch {
-			case row.Md5Digest != nil:
-				files[j].HashType = pointer("md5")
-				files[j].HashValue = row.Md5Digest
-			case row.Sha256Digest != nil:
-				files[j].HashType = pointer("sha256")
-				files[j].HashValue = row.Sha256Digest
-			case row.Blake2256Digest != nil:
-				files[j].HashType = pointer("blake2_256")
-				files[j].HashValue = row.Blake2256Digest
-			}
-		}
-		return files, nil
-	}
-
-	file, err := i.strg.ListPackageFiles(ctx, packageName)
+	rows, err := i.dbstore.ListReleaseFiles(ctx, packageName)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to list package files from storage")
+		return nil, errors.Wrap(err, "failed to list package files from database")
 	}
 
-	pkgFiles := make([]PackageFile, len(file))
-	for i, f := range file {
-		pkgFiles[i] = PackageFile{
-			FileName: f,
+	// Add hash sum and py version info as PEP 503 suggests
+	// https://peps.python.org/pep-0503/#specification
+	files := make([]PackageFile, len(rows))
+	for j, row := range rows {
+		files[j] = PackageFile{
+			FileName:        row.FileName,
+			FileType:        row.FileType,
+			HashType:        nil,
+			HashValue:       nil,
+			RequiresPython:  row.RequiresPython,
+			HasGpgSignature: false,
+		}
+
+		switch {
+		case row.Md5Digest != nil:
+			files[j].HashType = pointer("md5")
+			files[j].HashValue = row.Md5Digest
+		case row.Sha256Digest != nil:
+			files[j].HashType = pointer("sha256")
+			files[j].HashValue = row.Sha256Digest
+		case row.Blake2256Digest != nil:
+			files[j].HashType = pointer("blake2_256")
+			files[j].HashValue = row.Blake2256Digest
 		}
 	}
-	return pkgFiles, nil
+	return files, nil
 }
 
 func (i *index) DownloadFile(ctx context.Context, packageName, fileName string) (io.ReadCloser, error) {
-	packageName = NormalizePackageName(packageName)
+	packageName = utils.NormalizePackageName(packageName)
 
-	return i.strg.ReadFile(ctx, packageName, fileName)
+	row, err := i.dbstore.GetReleaseFile(ctx, packageName, fileName)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get release by file name from database")
+	}
+	if row == nil {
+		return nil, errors.Errorf("release file %s/%s not found", packageName, fileName)
+	}
+
+	return i.strg.ReadFile(ctx, row.FilePath)
+}
+
+func (i *index) UploadFile(ctx context.Context, req UploadFileRequest, content io.Reader) error {
+	filepath := path.Join(req.PackageName, uuid.NewString())
+	if err := i.strg.WriteFile(ctx, filepath, content); err != nil {
+		return errors.Wrap(err, "failed to write file to storage")
+	}
+
+	if err := i.dbstore.CreateRelease(ctx, db.CreateReleaseRequest{
+		PackageName:            req.PackageName,
+		Version:                req.Version,
+		MetadataVersion:        req.MetadataVersion,
+		Summary:                req.Summary,
+		Description:            req.Description,
+		DescriptionContentType: req.DescriptionContentType,
+		FileName:               req.FileName,
+		FileType:               req.FileType,
+		FilePath:               filepath,
+		Pyversion:              req.Pyversion,
+		RequiresPython:         req.RequiresPython,
+		RequiresDist:           req.RequiresDist,
+		Md5Digest:              req.Md5Digest,
+		Sha256Digest:           req.Sha256Digest,
+		Blake2256Digest:        req.Blake2256Digest,
+	}); err != nil {
+		// unlink the file from storage back if db insert fails
+		if err := i.strg.DeleteFile(ctx, filepath); err != nil {
+			log.Warn().Err(err).Msg("failed to delete file from storage after db insert failure")
+		}
+
+		return errors.Wrap(err, "failed to create release in database")
+	}
+	return nil
 }
 
 func pointer[T any](v T) *T {
 	return &v
+}
+
+func stringPointerToPgText(p *string) pgtype.Text {
+	if p == nil {
+		return pgtype.Text{Valid: false}
+	}
+
+	return pgtype.Text{String: *p, Valid: true}
 }

@@ -55,8 +55,29 @@ func (s *LocalStorage) ListPackageFiles(_ context.Context, packageName string) (
 	return files, nil
 }
 
-func (s *LocalStorage) ReadFile(_ context.Context, packageName, fileName string) (io.ReadCloser, error) {
-	return os.Open(path.Join(s.path, packageName, fileName))
+func (s *LocalStorage) ReadFile(_ context.Context, filepath string) (io.ReadCloser, error) {
+	return os.Open(path.Join(s.path, filepath))
+}
+
+func (s *LocalStorage) WriteFile(_ context.Context, filepath string, content io.Reader) error {
+	fullPath := path.Join(s.path, filepath)
+	parentPath := path.Dir(fullPath)
+	if err := os.MkdirAll(parentPath, 0755); err != nil {
+		return err
+	}
+
+	f, err := os.Create(fullPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = io.Copy(f, content)
+	return err
+}
+
+func (s *LocalStorage) DeleteFile(_ context.Context, filepath string) error {
+	return os.Remove(path.Join(s.path, filepath))
 }
 
 func (s *LocalStorage) Close() error {

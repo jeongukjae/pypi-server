@@ -21,8 +21,6 @@ type StorageConfig struct {
 }
 
 type DatabaseConfig struct {
-	Enabled bool `mapstructure:"enabled"`
-
 	Host     string `mapstructure:"host"`
 	Port     int    `mapstructure:"port"`
 	User     string `mapstructure:"user"`

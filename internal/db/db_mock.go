@@ -13,87 +13,90 @@ import (
 	context "context"
 	reflect "reflect"
 
+	pgx "github.com/jackc/pgx/v5"
+	pgconn "github.com/jackc/pgx/v5/pgconn"
 	gomock "go.uber.org/mock/gomock"
 )
 
-// MockStore is a mock of Store interface.
-type MockStore struct {
+// MockDBTX is a mock of DBTX interface.
+type MockDBTX struct {
 	ctrl     *gomock.Controller
-	recorder *MockStoreMockRecorder
+	recorder *MockDBTXMockRecorder
 	isgomock struct{}
 }
 
-// MockStoreMockRecorder is the mock recorder for MockStore.
-type MockStoreMockRecorder struct {
-	mock *MockStore
+// MockDBTXMockRecorder is the mock recorder for MockDBTX.
+type MockDBTXMockRecorder struct {
+	mock *MockDBTX
 }
 
-// NewMockStore creates a new mock instance.
-func NewMockStore(ctrl *gomock.Controller) *MockStore {
-	mock := &MockStore{ctrl: ctrl}
-	mock.recorder = &MockStoreMockRecorder{mock}
+// NewMockDBTX creates a new mock instance.
+func NewMockDBTX(ctrl *gomock.Controller) *MockDBTX {
+	mock := &MockDBTX{ctrl: ctrl}
+	mock.recorder = &MockDBTXMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockStore) EXPECT() *MockStoreMockRecorder {
+func (m *MockDBTX) EXPECT() *MockDBTXMockRecorder {
 	return m.recorder
 }
 
-// Close mocks base method.
-func (m *MockStore) Close(ctx context.Context) error {
+// Exec mocks base method.
+func (m *MockDBTX) Exec(arg0 context.Context, arg1 string, arg2 ...any) (pgconn.CommandTag, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Close", ctx)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Close indicates an expected call of Close.
-func (mr *MockStoreMockRecorder) Close(ctx any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockStore)(nil).Close), ctx)
-}
-
-// ListPackagesSimple mocks base method.
-func (m *MockStore) ListPackagesSimple(ctx context.Context) ([]string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListPackagesSimple", ctx)
-	ret0, _ := ret[0].([]string)
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Exec", varargs...)
+	ret0, _ := ret[0].(pgconn.CommandTag)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListPackagesSimple indicates an expected call of ListPackagesSimple.
-func (mr *MockStoreMockRecorder) ListPackagesSimple(ctx any) *gomock.Call {
+// Exec indicates an expected call of Exec.
+func (mr *MockDBTXMockRecorder) Exec(arg0, arg1 any, arg2 ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPackagesSimple", reflect.TypeOf((*MockStore)(nil).ListPackagesSimple), ctx)
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exec", reflect.TypeOf((*MockDBTX)(nil).Exec), varargs...)
 }
 
-// ListReleasesByPackageNameSimple mocks base method.
-func (m *MockStore) ListReleasesByPackageNameSimple(ctx context.Context, packageName string) ([]ListReleasesByPackageNameSimpleRow, error) {
+// Query mocks base method.
+func (m *MockDBTX) Query(arg0 context.Context, arg1 string, arg2 ...any) (pgx.Rows, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListReleasesByPackageNameSimple", ctx, packageName)
-	ret0, _ := ret[0].([]ListReleasesByPackageNameSimpleRow)
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Query", varargs...)
+	ret0, _ := ret[0].(pgx.Rows)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListReleasesByPackageNameSimple indicates an expected call of ListReleasesByPackageNameSimple.
-func (mr *MockStoreMockRecorder) ListReleasesByPackageNameSimple(ctx, packageName any) *gomock.Call {
+// Query indicates an expected call of Query.
+func (mr *MockDBTXMockRecorder) Query(arg0, arg1 any, arg2 ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListReleasesByPackageNameSimple", reflect.TypeOf((*MockStore)(nil).ListReleasesByPackageNameSimple), ctx, packageName)
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Query", reflect.TypeOf((*MockDBTX)(nil).Query), varargs...)
 }
 
-// Migrate mocks base method.
-func (m *MockStore) Migrate(ctx context.Context, migrationQueryPath string) error {
+// QueryRow mocks base method.
+func (m *MockDBTX) QueryRow(arg0 context.Context, arg1 string, arg2 ...any) pgx.Row {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Migrate", ctx, migrationQueryPath)
-	ret0, _ := ret[0].(error)
+	varargs := []any{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "QueryRow", varargs...)
+	ret0, _ := ret[0].(pgx.Row)
 	return ret0
 }
 
-// Migrate indicates an expected call of Migrate.
-func (mr *MockStoreMockRecorder) Migrate(ctx, migrationQueryPath any) *gomock.Call {
+// QueryRow indicates an expected call of QueryRow.
+func (mr *MockDBTXMockRecorder) QueryRow(arg0, arg1 any, arg2 ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Migrate", reflect.TypeOf((*MockStore)(nil).Migrate), ctx, migrationQueryPath)
+	varargs := append([]any{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueryRow", reflect.TypeOf((*MockDBTX)(nil).QueryRow), varargs...)
 }

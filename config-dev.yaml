@@ -1,5 +1,7 @@
+server:
+  enable_access_logger: false
+
 database:
-  enabled: true
   host: 127.0.0.1
   port: 5432
   user: user
@@ -8,3 +10,6 @@ database:
   sslmode: disable
 
 log_level: debug
+
+storage:
+  path: ./data

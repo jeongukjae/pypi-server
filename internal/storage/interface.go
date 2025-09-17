@@ -13,7 +13,9 @@ import (
 type Storage interface {
 	ListPackages(context.Context) ([]string, error)
 	ListPackageFiles(context.Context, string) ([]string, error)
-	ReadFile(ctx context.Context, packageName, fileName string) (io.ReadCloser, error)
+	ReadFile(ctx context.Context, path string) (io.ReadCloser, error)
+	WriteFile(ctx context.Context, path string, content io.Reader) error
+	DeleteFile(ctx context.Context, path string) error
 	Close() error
 }
 

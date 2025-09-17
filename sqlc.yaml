@@ -6,6 +6,6 @@ sql:
     schema: "queries/migrations"
     gen:
       go:
-        package: "dbgen"
-        out: "internal/db/dbgen"
+        package: "db"
+        out: "internal/db"
         sql_package: "pgx/v5"

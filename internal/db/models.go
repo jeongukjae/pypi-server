@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.30.0
 
-package dbgen
+package db
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
@@ -19,20 +19,30 @@ type Package struct {
 
 type Release struct {
 	Version                string
-	PackageName            pgtype.Text
+	PackageName            string
+	MetadataVersion        string
 	Summary                pgtype.Text
 	Description            pgtype.Text
 	DescriptionContentType pgtype.Text
-	FileName               pgtype.Text
-	FileType               pgtype.Text
-	Pyversion              pgtype.Text
-	RequiresPython         pgtype.Text
-	RequiresDist           []string
-	Md5Digest              pgtype.Text
-	Sha256Digest           pgtype.Text
-	Blake2256Digest        pgtype.Text
 	CreatedAt              pgtype.Timestamptz
+	UpdatedAt              pgtype.Timestamptz
 	Yanked                 pgtype.Bool
 	YankedReason           pgtype.Text
 	YankedAt               pgtype.Timestamptz
+}
+
+type ReleaseFile struct {
+	Version         string
+	PackageName     string
+	FileName        string
+	FileType        string
+	FilePath        string
+	FileSizeBytes   int32
+	Pyversion       pgtype.Text
+	RequiresPython  pgtype.Text
+	RequiresDist    []string
+	Md5Digest       pgtype.Text
+	Sha256Digest    pgtype.Text
+	Blake2256Digest pgtype.Text
+	CreatedAt       pgtype.Timestamptz
 }

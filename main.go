@@ -44,19 +44,17 @@ func main() {
 
 	var dbstore db.Store
 
-	if cfg.Database.Enabled {
-		ctx := context.Background()
+	ctx := context.Background()
 
-		log.Info().Msg("Initializing database")
-		dbstore, err = db.New(ctx, &cfg.Database)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to initialize database")
-		}
+	log.Info().Msg("Initializing database")
+	dbstore, err = db.NewStore(ctx, &cfg.Database)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize database")
+	}
 
-		log.Info().Msg("Migrating database")
-		if err := dbstore.Migrate(ctx, cfg.Database.MigrationPath); err != nil {
-			log.Fatal().Err(err).Msg("Failed to migrate database")
-		}
+	log.Info().Msg("Migrating database")
+	if err := dbstore.Migrate(ctx, cfg.Database.MigrationPath); err != nil {
+		log.Fatal().Err(err).Msg("Failed to migrate database")
 	}
 
 	index := packageindex.NewIndex(strg, dbstore)
@@ -75,12 +73,13 @@ func main() {
 			LogStatus:   true,
 			LogError:    true,
 			HandleError: true,
+			LogMethod:   true,
 			LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
 				reqID := c.Response().Header().Get(echo.HeaderXRequestID)
 				if v.Error == nil {
-					log.Info().Str("URI", v.URI).Int("status", v.Status).Str("requestId", reqID).Msg("request")
+					log.Info().Str("method", v.Method).Str("URI", v.URI).Int("status", v.Status).Str("requestId", reqID).Msg("request")
 				} else {
-					log.Error().Str("URI", v.URI).Int("status", v.Status).Str("requestId", reqID).Err(v.Error).Msg("request")
+					log.Error().Str("method", v.Method).Str("URI", v.URI).Int("status", v.Status).Str("requestId", reqID).Err(v.Error).Msg("request")
 				}
 				return nil
 			},
@@ -88,7 +87,7 @@ func main() {
 	}
 
 	routes.SetupSimpleRoutes(e, index)
-	routes.SetupLegacyRoutes(e, strg, dbstore)
+	routes.SetupLegacyRoutes(e, index)
 
 	go func() {
 		addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
@@ -103,7 +102,6 @@ func main() {
 
 	<-quit
 
-	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, time.Second*time.Duration(cfg.Server.GracefulShutdownSeconds))
 	defer cancel()
 
@@ -117,11 +115,9 @@ func main() {
 		log.Error().Err(err).Msg("Error closing storage")
 	}
 
-	if dbstore != nil {
-		log.Info().Msg("Closing database")
-		if err := dbstore.Close(ctx); err != nil {
-			log.Error().Err(err).Msg("Error closing database")
-		}
+	log.Info().Msg("Closing database")
+	if err := dbstore.Close(ctx); err != nil {
+		log.Error().Err(err).Msg("Error closing database")
 	}
 
 	log.Info().Msg("Server stopped")
