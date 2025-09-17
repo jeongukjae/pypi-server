@@ -21,6 +21,8 @@ func SetupSimpleRoutes(e *echo.Echo, index packageindex.Index) {
 
 func ListPackages(index packageindex.Index) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		log.Debug().Msg("Listing packages")
+
 		packages, err := index.ListPackages(c.Request().Context())
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to list packages from database")
@@ -40,6 +42,8 @@ func ListPackages(index packageindex.Index) echo.HandlerFunc {
 func ListPackageFiles(index packageindex.Index) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		packageName := c.Param("package")
+
+		log.Debug().Str("package", packageName).Msg("Listing package files")
 
 		// Change to string builder if performance becomes an issue.
 
@@ -71,6 +75,8 @@ func DownloadFile(index packageindex.Index) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		packageName := c.Param("package")
 		fileName := c.Param("file")
+
+		log.Debug().Str("package", packageName).Str("file", fileName).Msg("Downloading file")
 
 		rc, err := index.DownloadFile(c.Request().Context(), packageName, fileName)
 		if err != nil {
