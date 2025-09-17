@@ -45,6 +45,8 @@ type UploadFileRequest struct {
 	Blake2256Digest        *string
 }
 
+//go:generate go tool go.uber.org/mock/mockgen -source=index.go -destination=./index_mock.go -package=packageindex Index
+
 type Index interface {
 	ListPackages(ctx context.Context) ([]string, error)
 	ListPackageFiles(ctx context.Context, packageName string) ([]PackageFile, error)

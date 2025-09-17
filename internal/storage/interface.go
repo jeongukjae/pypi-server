@@ -10,6 +10,8 @@ import (
 	"github.com/jeongukjae/pypi-server/internal/config"
 )
 
+//go:generate go tool go.uber.org/mock/mockgen -source=interface.go -destination=./interface_mock.go -package=storage Storage
+
 type Storage interface {
 	ListPackages(context.Context) ([]string, error)
 	ListPackageFiles(context.Context, string) ([]string, error)

@@ -18,7 +18,7 @@ import (
 	"github.com/jeongukjae/pypi-server/internal/utils"
 )
 
-//go:generate go tool go.uber.org/mock/mockgen -source=db.go -destination=./db_mock.go -package=db Store
+//go:generate go tool go.uber.org/mock/mockgen -source=store.go -destination=./store_mock.go -package=db Store
 
 type ListReleasesResponse struct {
 	Version         string
