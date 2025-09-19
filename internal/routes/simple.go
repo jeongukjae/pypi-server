@@ -21,11 +21,11 @@ func SetupSimpleRoutes(e *echo.Echo, index packageindex.Index) {
 
 func ListPackages(index packageindex.Index) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		log.Debug().Msg("Listing packages")
+		log.Ctx(c.Request().Context()).Debug().Msg("Listing packages")
 
 		packages, err := index.ListPackages(c.Request().Context())
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to list packages from database")
+			log.Ctx(c.Request().Context()).Error().Err(err).Msg("Failed to list packages from database")
 			return c.JSON(http.StatusInternalServerError, &HTTPError{Message: "Failed to list packages", Errors: []string{err.Error()}})
 		}
 
@@ -43,14 +43,14 @@ func ListPackageFiles(index packageindex.Index) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		packageName := c.Param("package")
 
-		log.Debug().Str("package", packageName).Msg("Listing package files")
+		log.Ctx(c.Request().Context()).Debug().Str("package", packageName).Msg("Listing package files")
 
 		// Change to string builder if performance becomes an issue.
 
 		html := "<!DOCTYPE html><html><body>"
 		files, err := index.ListPackageFiles(c.Request().Context(), packageName)
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to list package files")
+			log.Ctx(c.Request().Context()).Error().Err(err).Msg("Failed to list package files")
 			return c.JSON(http.StatusInternalServerError, &HTTPError{Message: "Failed to list package files", Errors: []string{err.Error()}})
 		}
 		for _, file := range files {
@@ -76,11 +76,11 @@ func DownloadFile(index packageindex.Index) echo.HandlerFunc {
 		packageName := c.Param("package")
 		fileName := c.Param("file")
 
-		log.Debug().Str("package", packageName).Str("file", fileName).Msg("Downloading file")
+		log.Ctx(c.Request().Context()).Debug().Str("package", packageName).Str("file", fileName).Msg("Downloading file")
 
 		rc, err := index.DownloadFile(c.Request().Context(), packageName, fileName)
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to read file")
+			log.Ctx(c.Request().Context()).Error().Err(err).Msg("Failed to read file")
 			return c.JSON(http.StatusInternalServerError, &HTTPError{Message: "Failed to read file", Errors: []string{err.Error()}})
 		}
 		defer rc.Close()

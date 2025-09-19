@@ -78,7 +78,7 @@ func (i *index) ListPackageFiles(ctx context.Context, packageName string) ([]Pac
 
 	rows, err := i.dbstore.ListReleaseFiles(ctx, packageName)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to list package files from database")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to list package files from database")
 		return nil, errors.Wrap(err, "failed to list package files from database")
 	}
 
@@ -115,7 +115,7 @@ func (i *index) DownloadFile(ctx context.Context, packageName, fileName string) 
 
 	row, err := i.dbstore.GetReleaseFile(ctx, packageName, fileName)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to get release by file name from database")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to get release by file name from database")
 		return nil, errors.Wrap(err, "failed to get release by file name from database")
 	}
 	if row == nil {
@@ -128,7 +128,7 @@ func (i *index) DownloadFile(ctx context.Context, packageName, fileName string) 
 func (i *index) UploadFile(ctx context.Context, req UploadFileRequest, content io.Reader) error {
 	filepath := path.Join(req.PackageName, uuid.NewString())
 	if err := i.strg.WriteFile(ctx, filepath, content); err != nil {
-		log.Error().Err(err).Msg("failed to write file to storage")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to write file to storage")
 		return errors.Wrap(err, "failed to write file to storage")
 	}
 
@@ -149,10 +149,10 @@ func (i *index) UploadFile(ctx context.Context, req UploadFileRequest, content i
 		Sha256Digest:           req.Sha256Digest,
 		Blake2256Digest:        req.Blake2256Digest,
 	}); err != nil {
-		log.Error().Err(err).Msg("failed to create release in database")
+		log.Ctx(ctx).Error().Err(err).Msg("failed to create release in database")
 		// unlink the file from storage back if db insert fails
 		if err := i.strg.DeleteFile(ctx, filepath); err != nil {
-			log.Warn().Err(err).Msg("failed to delete file from storage after db insert failure")
+			log.Ctx(ctx).Warn().Err(err).Msg("failed to delete file from storage after db insert failure")
 		}
 
 		return errors.Wrap(err, "failed to create release in database")

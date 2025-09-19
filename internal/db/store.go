@@ -105,7 +105,7 @@ func (d *db) Migrate(ctx context.Context, migrationQueryPath string) error {
 		return errors.Wrap(err, "failed to load migrations")
 	}
 
-	log.Debug().Int("count", len(migrator.Migrations)).Msg("loaded migrations")
+	log.Ctx(ctx).Debug().Int("count", len(migrator.Migrations)).Msg("loaded migrations")
 
 	if err := migrator.Migrate(ctx); err != nil {
 		return errors.Wrap(err, "failed to run migrations")
@@ -152,7 +152,7 @@ func (d *db) CreateRelease(ctx context.Context, arg CreateReleaseRequest) error 
 	defer func() {
 		if !commit {
 			if rbErr := tx.Rollback(ctx); rbErr != nil {
-				log.Error().Err(rbErr).Msg("failed to rollback transaction")
+				log.Ctx(ctx).Error().Err(rbErr).Msg("failed to rollback transaction")
 			}
 		}
 	}()
@@ -160,7 +160,7 @@ func (d *db) CreateRelease(ctx context.Context, arg CreateReleaseRequest) error 
 	querier := New(tx)
 
 	// 1. Check if the package exists, if not create it.
-	log.Debug().Str("package", arg.PackageName).Msg("Checking if package exists")
+	log.Ctx(ctx).Debug().Str("package", arg.PackageName).Msg("Checking if package exists")
 	needsUpdatePackage := true
 	currentPackage, err := querier.GetPackageByName(ctx, arg.PackageName)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
@@ -179,7 +179,7 @@ func (d *db) CreateRelease(ctx context.Context, arg CreateReleaseRequest) error 
 	}
 
 	// 2. Upsert the release
-	log.Debug().Str("package", arg.PackageName).Str("version", arg.Version).Msg("Upserting release")
+	log.Ctx(ctx).Debug().Str("package", arg.PackageName).Str("version", arg.Version).Msg("Upserting release")
 	release, err := querier.UpsertRelease(ctx, UpsertReleaseParams{
 		Version:                version.String(),
 		PackageName:            arg.PackageName,
@@ -193,7 +193,7 @@ func (d *db) CreateRelease(ctx context.Context, arg CreateReleaseRequest) error 
 	}
 
 	// 3. Create the release file
-	log.Debug().Str("package", arg.PackageName).Str("version", arg.Version).Str("file", arg.FileName).Msg("Creating release file")
+	log.Ctx(ctx).Debug().Str("package", arg.PackageName).Str("version", arg.Version).Str("file", arg.FileName).Msg("Creating release file")
 	_, err = querier.CreateReleaseFile(ctx, CreateReleaseFileParams{
 		PackageName:     arg.PackageName,
 		Version:         release.Version,
@@ -212,9 +212,9 @@ func (d *db) CreateRelease(ctx context.Context, arg CreateReleaseRequest) error 
 	}
 
 	// 4. Update the package's latest version if needed
-	log.Debug().Str("package", arg.PackageName).Str("version", arg.Version).Msg("Checking if package latest version needs update")
+	log.Ctx(ctx).Debug().Str("package", arg.PackageName).Str("version", arg.Version).Msg("Checking if package latest version needs update")
 	if needsUpdatePackage {
-		log.Debug().Str("current", currentPackage.LatestVersion.String).Str("new", version.String()).Msg("Comparing versions to update latest version")
+		log.Ctx(ctx).Debug().Str("current", currentPackage.LatestVersion.String).Str("new", version.String()).Msg("Comparing versions to update latest version")
 		latestVersion := currentPackage.LatestVersion
 		summary := currentPackage.Summary
 		if !latestVersion.Valid {
@@ -239,7 +239,7 @@ func (d *db) CreateRelease(ctx context.Context, arg CreateReleaseRequest) error 
 	}
 
 	// 5. Then we can commit the transaction
-	log.Debug().Str("package", arg.PackageName).Str("version", arg.Version).Msg("Committing transaction")
+	log.Ctx(ctx).Debug().Str("package", arg.PackageName).Str("version", arg.Version).Msg("Committing transaction")
 	if err := tx.Commit(ctx); err != nil {
 		return errors.Wrap(err, "failed to commit transaction")
 	}

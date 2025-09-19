@@ -86,7 +86,7 @@ func UploadFile(index packageindex.Index) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, &HTTPError{Message: "Failed to upload file", Errors: []string{err.Error()}})
 		}
 
-		log.Info().Str("package", payload.Name).Str("version", payload.Version).Str("file", formFile.Filename).Msg("File uploaded")
+		log.Ctx(c.Request().Context()).Info().Str("package", payload.Name).Str("version", payload.Version).Str("file", formFile.Filename).Msg("File uploaded")
 		return c.JSON(http.StatusOK, map[string]string{"status": "success"})
 	}
 }

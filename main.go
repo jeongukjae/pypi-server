@@ -20,6 +20,7 @@ import (
 
 	"github.com/jeongukjae/pypi-server/internal/config"
 	"github.com/jeongukjae/pypi-server/internal/db"
+	internalMw "github.com/jeongukjae/pypi-server/internal/middleware"
 	"github.com/jeongukjae/pypi-server/internal/packageindex"
 	"github.com/jeongukjae/pypi-server/internal/routes"
 	"github.com/jeongukjae/pypi-server/internal/storage"
@@ -65,6 +66,7 @@ func main() { //nolint:funlen // Function length is acceptable here for the sake
 
 	e.Use(middleware.Recover())
 	e.Use(middleware.RequestID())
+	e.Use(internalMw.Logger())
 
 	if cfg.Server.EnableAccessLogger {
 		e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
@@ -74,11 +76,11 @@ func main() { //nolint:funlen // Function length is acceptable here for the sake
 			HandleError: true,
 			LogMethod:   true,
 			LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
-				reqID := c.Response().Header().Get(echo.HeaderXRequestID)
+				l := log.Ctx(c.Request().Context())
 				if v.Error == nil {
-					log.Info().Str("method", v.Method).Str("URI", v.URI).Int("status", v.Status).Str("requestId", reqID).Msg("request")
+					l.Info().Str("method", v.Method).Str("URI", v.URI).Int("status", v.Status).Msg("request")
 				} else {
-					log.Error().Str("method", v.Method).Str("URI", v.URI).Int("status", v.Status).Str("requestId", reqID).Err(v.Error).Msg("request")
+					l.Error().Str("method", v.Method).Str("URI", v.URI).Int("status", v.Status).Err(v.Error).Msg("request")
 				}
 				return nil
 			},
