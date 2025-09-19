@@ -15,9 +15,25 @@ type ServerConfig struct {
 	EnableAccessLogger       bool   `mapstructure:"enable_access_logger"`
 }
 
+type LocalConfig struct {
+	Path string `mapstructure:"path"`
+}
+
+type S3Config struct {
+	Bucket       string `mapstructure:"bucket"`
+	Prefix       string `mapstructure:"prefix"`
+	Region       string `mapstructure:"region"`
+	Endpoint     string `mapstructure:"endpoint"`
+	UsePathStyle bool   `mapstructure:"use_path_style"`
+	AccessKey    string `mapstructure:"access_key"`
+	SecretKey    string `mapstructure:"secret_key"`
+}
+
 type StorageConfig struct {
 	Kind string `mapstructure:"kind"`
-	Path string `mapstructure:"path"`
+
+	Local LocalConfig `mapstructure:"local"`
+	S3    S3Config    `mapstructure:"s3"`
 }
 
 type DatabaseConfig struct {
@@ -48,7 +64,7 @@ func MustInit(configFilePath *string) *Config {
 	viper.SetDefault("server.graceful_shutdown_seconds", 10)
 	viper.SetDefault("server.enable_access_logger", true)
 	viper.SetDefault("storage.kind", "local")
-	viper.SetDefault("storage.path", "./data")
+	viper.SetDefault("storage.local.path", "./data")
 	viper.SetDefault("database.enabled", false)
 
 	viper.SetDefault("database.migration_path", "./queries/migrations")

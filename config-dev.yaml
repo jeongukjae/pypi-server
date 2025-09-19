@@ -9,4 +9,12 @@ database:
 log_level: debug
 
 storage:
-  path: ./data
+  kind: s3
+  s3:
+    bucket: my-bucket
+    prefix: my-prefix
+    region: us-west-2
+    endpoint: http://localhost:9000
+    use_path_style: true
+    access_key: myaccesskey
+    secret_key: mysecretkey

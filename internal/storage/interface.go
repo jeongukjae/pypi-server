@@ -5,8 +5,6 @@ import (
 	"errors"
 	"io"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/jeongukjae/pypi-server/internal/config"
 )
 
@@ -21,11 +19,12 @@ type Storage interface {
 	Close() error
 }
 
-func New(cfg *config.StorageConfig) (Storage, error) {
+func New(ctx context.Context, cfg *config.StorageConfig) (Storage, error) {
 	switch cfg.Kind {
 	case "local":
-		log.Info().Msgf("Using local storage at path: %s", cfg.Path)
-		return NewLocalStorage(cfg.Path)
+		return NewLocalStorage(&cfg.Local), nil
+	case "s3":
+		return NewS3Storage(ctx, &cfg.S3)
 	default:
 		return nil, errors.New("unknown storage kind: " + cfg.Kind)
 	}

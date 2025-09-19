@@ -349,9 +349,8 @@ INSERT INTO release (
     summary,
     description,
     description_content_type
-) VALUES (
-    $1, $2, $3, $4, $5, $6
-) ON CONFLICT (package_name, version) DO UPDATE SET
+) VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (package_name, version) DO UPDATE SET
     metadata_version = EXCLUDED.metadata_version,
     summary = EXCLUDED.summary,
     description = EXCLUDED.description,

@@ -7,14 +7,16 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/jeongukjae/pypi-server/internal/config"
 )
 
 func TestLocalStorage(t *testing.T) {
 	dir := t.TempDir()
-	storage, err := NewLocalStorage(dir)
-	if err != nil {
-		t.Fatalf("failed to create local storage: %v", err)
-	}
+	storage := NewLocalStorage(&config.LocalConfig{Path: dir})
 
 	ctx := context.Background()
 	pkgName := "testpkg"
@@ -23,51 +25,35 @@ func TestLocalStorage(t *testing.T) {
 
 	// WriteFile
 	writePath := filepath.Join(pkgName, fileName)
-	err = storage.WriteFile(ctx, writePath, strings.NewReader(fileContent))
-	if err != nil {
-		t.Fatalf("WriteFile failed: %v", err)
-	}
+	err := storage.WriteFile(ctx, writePath, strings.NewReader(fileContent))
+	require.NoError(t, err)
 
 	// ListPackages
 	pkgs, err := storage.ListPackages(ctx)
-	if err != nil {
-		t.Fatalf("ListPackages failed: %v", err)
-	}
-	if len(pkgs) != 1 || pkgs[0] != pkgName {
-		t.Errorf("ListPackages got %v, want [%q]", pkgs, pkgName)
-	}
+	require.NoError(t, err)
+	require.Len(t, pkgs, 1)
+	require.Equal(t, pkgName, pkgs[0])
 
 	// ListPackageFiles
 	files, err := storage.ListPackageFiles(ctx, pkgName)
-	if err != nil {
-		t.Fatalf("ListPackageFiles failed: %v", err)
-	}
-	if len(files) != 1 || files[0] != fileName {
-		t.Errorf("ListPackageFiles got %v, want [%q]", files, fileName)
-	}
+	require.NoError(t, err)
+	require.Len(t, files, 1)
+	require.Equal(t, fileName, files[0])
 
 	// ReadFile
 	reader, err := storage.ReadFile(ctx, writePath)
-	if err != nil {
-		t.Fatalf("ReadFile failed: %v", err)
-	}
+	require.NoError(t, err)
+
 	defer reader.Close()
 	data, err := io.ReadAll(reader)
-	if err != nil {
-		t.Fatalf("ReadAll failed: %v", err)
-	}
-	if string(data) != fileContent {
-		t.Errorf("ReadFile got %q, want %q", string(data), fileContent)
-	}
+	require.NoError(t, err)
+	require.Equal(t, string(data), fileContent)
 
 	// DeleteFile
 	err = storage.DeleteFile(ctx, writePath)
-	if err != nil {
-		t.Fatalf("DeleteFile failed: %v", err)
-	}
+	require.NoError(t, err)
+
 	// Confirm deletion
 	_, err = storage.ReadFile(ctx, writePath)
-	if !os.IsNotExist(err) {
-		t.Errorf("expected file to be deleted, got err: %v", err)
-	}
+	assert.True(t, os.IsNotExist(err))
 }

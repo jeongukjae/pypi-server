@@ -29,6 +29,8 @@ func main() { //nolint:funlen // Function length is acceptable here for the sake
 	configFilePath := flag.String("config", "", "Path to config file")
 	flag.Parse()
 
+	ctx := context.Background()
+
 	cfg := config.MustInit(configFilePath)
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	logLevel, err := zerolog.ParseLevel(cfg.LogLevel)
@@ -37,14 +39,12 @@ func main() { //nolint:funlen // Function length is acceptable here for the sake
 	}
 	zerolog.SetGlobalLevel(logLevel)
 
-	strg, err := storage.New(&cfg.Storage)
+	strg, err := storage.New(ctx, &cfg.Storage)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize storage")
 	}
 
 	var dbstore db.Store
-
-	ctx := context.Background()
 
 	log.Info().Msg("Initializing database")
 	dbstore, err = db.NewStore(ctx, &cfg.Database)

@@ -5,18 +5,23 @@ import (
 	"io"
 	"os"
 	"path"
+
+	"github.com/rs/zerolog/log"
+
+	"github.com/jeongukjae/pypi-server/internal/config"
 )
 
 type LocalStorage struct {
-	path string
+	cfg *config.LocalConfig
 }
 
-func NewLocalStorage(path string) (*LocalStorage, error) {
-	return &LocalStorage{path: path}, nil
+func NewLocalStorage(cfg *config.LocalConfig) *LocalStorage {
+	log.Info().Msgf("Using local storage at path: %s", cfg.Path)
+	return &LocalStorage{cfg: cfg}
 }
 
 func (s *LocalStorage) ListPackages(context.Context) ([]string, error) {
-	osFiles, err := os.ReadDir(s.path)
+	osFiles, err := os.ReadDir(s.cfg.Path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []string{}, nil
@@ -36,7 +41,7 @@ func (s *LocalStorage) ListPackages(context.Context) ([]string, error) {
 }
 
 func (s *LocalStorage) ListPackageFiles(_ context.Context, packageName string) ([]string, error) {
-	osFiles, err := os.ReadDir(path.Join(s.path, packageName))
+	osFiles, err := os.ReadDir(path.Join(s.cfg.Path, packageName))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []string{}, nil
@@ -56,11 +61,11 @@ func (s *LocalStorage) ListPackageFiles(_ context.Context, packageName string) (
 }
 
 func (s *LocalStorage) ReadFile(_ context.Context, filepath string) (io.ReadCloser, error) {
-	return os.Open(path.Join(s.path, filepath))
+	return os.Open(path.Join(s.cfg.Path, filepath))
 }
 
 func (s *LocalStorage) WriteFile(_ context.Context, filepath string, content io.Reader) error {
-	fullPath := path.Join(s.path, filepath)
+	fullPath := path.Join(s.cfg.Path, filepath)
 	parentPath := path.Dir(fullPath)
 	if err := os.MkdirAll(parentPath, 0750); err != nil {
 		return err
@@ -77,7 +82,7 @@ func (s *LocalStorage) WriteFile(_ context.Context, filepath string, content io.
 }
 
 func (s *LocalStorage) DeleteFile(_ context.Context, filepath string) error {
-	return os.Remove(path.Join(s.path, filepath))
+	return os.Remove(path.Join(s.cfg.Path, filepath))
 }
 
 func (s *LocalStorage) Close() error {
