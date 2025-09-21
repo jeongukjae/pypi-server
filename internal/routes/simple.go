@@ -43,8 +43,6 @@ func ListPackageFiles(index packageindex.Index) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		packageName := c.Param("package")
 
-		log.Ctx(c.Request().Context()).Debug().Str("package", packageName).Msg("Listing package files")
-
 		// Change to string builder if performance becomes an issue.
 
 		html := "<!DOCTYPE html><html><body>"

@@ -66,6 +66,8 @@ func UploadFile(index packageindex.Index) echo.HandlerFunc {
 		}
 		defer file.Close()
 
+		log.Ctx(c.Request().Context()).Debug().Str("package", payload.Name).Str("version", payload.Version).Str("file", formFile.Filename).Msg("Uploading file")
+
 		err = index.UploadFile(c.Request().Context(), packageindex.UploadFileRequest{
 			PackageName:            payload.Name,
 			Version:                payload.Version,
