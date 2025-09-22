@@ -13,12 +13,24 @@ import (
 	"github.com/jackc/tern/v2/migrate"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/jeongukjae/pypi-server/internal/config"
 	"github.com/jeongukjae/pypi-server/internal/utils"
 )
 
 //go:generate go tool go.uber.org/mock/mockgen -source=store.go -destination=./store_mock.go -package=db Store
+
+var (
+	ErrNoRows = pgx.ErrNoRows
+)
+
+const (
+	RoleAdmin      = "admin"
+	RoleMaintainer = "maintainer"
+	RoleUploader   = "uploader"
+	RoleReadOnly   = "readonly"
+)
 
 type ListReleasesResponse struct {
 	Version         string
@@ -58,6 +70,9 @@ type Store interface {
 	ListReleaseFiles(ctx context.Context, packageName string) ([]ListReleasesResponse, error)
 	GetRelease(ctx context.Context, packageName, version string) (*GetReleaseRow, error)
 	GetReleaseFile(ctx context.Context, packageName, fileName string) (*GetReleaseFileByNameRow, error)
+
+	CreateUser(ctx context.Context, username, password, role string) (*CreateUserRow, error)
+	GetUserByUsername(ctx context.Context, username string) (*GetUserByNameRow, error)
 }
 
 func NewStore(ctx context.Context, cfg *config.DatabaseConfig) (Store, error) {
@@ -302,6 +317,60 @@ func (d *db) GetReleaseFile(ctx context.Context, packageName, fileName string) (
 	return &row, nil
 }
 
+func (d *db) CreateUser(ctx context.Context, username, password, role string) (*CreateUserRow, error) {
+	hashedPassword, err := hashPassword(password)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to hash password")
+	}
+
+	tx, err := d.pool.Begin(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to begin transaction")
+	}
+
+	commit := false
+	defer func() {
+		if !commit {
+			if rbErr := tx.Rollback(ctx); rbErr != nil {
+				log.Ctx(ctx).Error().Err(rbErr).Msg("failed to rollback transaction")
+			}
+		}
+	}()
+
+	querier := New(tx)
+	user, err := querier.CreateUser(ctx, CreateUserParams{
+		Username:     username,
+		PasswordHash: string(hashedPassword),
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create initial user")
+	}
+	log.Ctx(ctx).Debug().Str("username", username).Msg("Initial user created")
+
+	if err := querier.UpdateUserRole(ctx, UpdateUserRoleParams{
+		UserID: user.ID,
+		Name:   role,
+	}); err != nil {
+		return nil, errors.Wrapf(err, "failed to update user role to %s", role)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, errors.Wrap(err, "failed to commit transaction")
+	}
+	commit = true
+
+	return &user, nil
+}
+
+func (d *db) GetUserByUsername(ctx context.Context, username string) (*GetUserByNameRow, error) {
+	querier := New(d.pool)
+	user, err := querier.GetUserByName(ctx, username)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get user by username")
+	}
+	return &user, nil
+}
+
 func getTextFromString(s *string) pgtype.Text {
 	if s == nil {
 		return pgtype.Text{Valid: false}
@@ -317,4 +386,13 @@ func getStringFromText(t pgtype.Text) *string {
 		return nil
 	}
 	return &t.String
+}
+
+func hashPassword(password string) ([]byte, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to hash password")
+	}
+
+	return hashedPassword, nil
 }

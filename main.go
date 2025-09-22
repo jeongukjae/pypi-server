@@ -45,17 +45,9 @@ func main() { //nolint:funlen // Function length is acceptable here for the sake
 		log.Fatal().Err(err).Msg("Failed to initialize storage")
 	}
 
-	var dbstore db.Store
-
-	log.Info().Msg("Initializing database")
-	dbstore, err = db.NewStore(ctx, &cfg.Database)
+	dbstore, err := initializeDBStore(ctx, cfg)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize database")
-	}
-
-	log.Info().Msg("Migrating database")
-	if err := dbstore.Migrate(ctx, cfg.Database.MigrationPath); err != nil {
-		log.Fatal().Err(err).Msg("Failed to migrate database")
 	}
 
 	index := packageindex.NewIndex(strg, dbstore)
@@ -69,22 +61,7 @@ func main() { //nolint:funlen // Function length is acceptable here for the sake
 	e.Use(internalMw.Logger())
 
 	if cfg.Server.EnableAccessLogger {
-		e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
-			LogURI:      true,
-			LogStatus:   true,
-			LogError:    true,
-			HandleError: true,
-			LogMethod:   true,
-			LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
-				l := log.Ctx(c.Request().Context())
-				if v.Error == nil {
-					l.Info().Str("method", v.Method).Str("URI", v.URI).Int("status", v.Status).Msg("request")
-				} else {
-					l.Error().Str("method", v.Method).Str("URI", v.URI).Int("status", v.Status).Err(v.Error).Msg("request")
-				}
-				return nil
-			},
-		}))
+		e.Use(accessLogger())
 	}
 
 	routes.SetupSimpleRoutes(e, index)
@@ -122,4 +99,50 @@ func main() { //nolint:funlen // Function length is acceptable here for the sake
 	}
 
 	log.Info().Msg("Server stopped")
+}
+
+func initializeDBStore(ctx context.Context, cfg *config.Config) (db.Store, error) {
+	dbstore, err := db.NewStore(ctx, &cfg.Database)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Info().Msg("Migrating database")
+	if err := dbstore.Migrate(ctx, cfg.Database.MigrationPath); err != nil {
+		return nil, err
+	}
+
+	if _, err = dbstore.GetUserByUsername(ctx, cfg.Username); err != nil {
+		if !errors.Is(err, db.ErrNoRows) {
+			return nil, errors.Wrap(err, "failed to get user by username")
+		}
+
+		log.Info().Msgf("Creating initial user: %s", cfg.Username)
+		createdUser, err := dbstore.CreateUser(ctx, cfg.Username, cfg.Password, db.RoleAdmin)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create initial user")
+		}
+		log.Info().Msgf("Initial user created (Only shown once): ID=%d, Username=%s, Password=%s", createdUser.ID, createdUser.Username, cfg.Password)
+	}
+
+	return dbstore, nil
+}
+
+func accessLogger() echo.MiddlewareFunc {
+	return middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+		LogURI:      true,
+		LogStatus:   true,
+		LogError:    true,
+		HandleError: true,
+		LogMethod:   true,
+		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+			l := log.Ctx(c.Request().Context())
+			if v.Error == nil {
+				l.Info().Str("method", v.Method).Str("URI", v.URI).Int("status", v.Status).Msg("request")
+			} else {
+				l.Error().Str("method", v.Method).Str("URI", v.URI).Int("status", v.Status).Err(v.Error).Msg("request")
+			}
+			return nil
+		},
+	})
 }

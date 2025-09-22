@@ -68,6 +68,21 @@ func (mr *MockStoreMockRecorder) CreateRelease(ctx, arg any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRelease", reflect.TypeOf((*MockStore)(nil).CreateRelease), ctx, arg)
 }
 
+// CreateUser mocks base method.
+func (m *MockStore) CreateUser(ctx context.Context, username, password, role string) (*CreateUserRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateUser", ctx, username, password, role)
+	ret0, _ := ret[0].(*CreateUserRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateUser indicates an expected call of CreateUser.
+func (mr *MockStoreMockRecorder) CreateUser(ctx, username, password, role any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockStore)(nil).CreateUser), ctx, username, password, role)
+}
+
 // GetPackageByName mocks base method.
 func (m *MockStore) GetPackageByName(ctx context.Context, packageName string) (*Package, error) {
 	m.ctrl.T.Helper()
@@ -111,6 +126,21 @@ func (m *MockStore) GetReleaseFile(ctx context.Context, packageName, fileName st
 func (mr *MockStoreMockRecorder) GetReleaseFile(ctx, packageName, fileName any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseFile", reflect.TypeOf((*MockStore)(nil).GetReleaseFile), ctx, packageName, fileName)
+}
+
+// GetUserByUsername mocks base method.
+func (m *MockStore) GetUserByUsername(ctx context.Context, username string) (*GetUserByNameRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserByUsername", ctx, username)
+	ret0, _ := ret[0].(*GetUserByNameRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserByUsername indicates an expected call of GetUserByUsername.
+func (mr *MockStoreMockRecorder) GetUserByUsername(ctx, username any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByUsername", reflect.TypeOf((*MockStore)(nil).GetUserByUsername), ctx, username)
 }
 
 // ListPackages mocks base method.

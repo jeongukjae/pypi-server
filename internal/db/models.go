@@ -8,6 +8,28 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AccessToken struct {
+	ID          int32
+	UserID      int32
+	TokenHash   string
+	Description pgtype.Text
+	ExpiresAt   pgtype.Timestamptz
+	CreatedAt   pgtype.Timestamptz
+}
+
+type AccessTokenRole struct {
+	AccessTokenID int32
+	RoleID        int32
+}
+
+type AuditLog struct {
+	ID        int32
+	UserID    pgtype.Int4
+	Action    string
+	Details   pgtype.Text
+	CreatedAt pgtype.Timestamptz
+}
+
 type Package struct {
 	Name           string
 	Summary        pgtype.Text
@@ -45,4 +67,27 @@ type ReleaseFile struct {
 	Sha256Digest    pgtype.Text
 	Blake2256Digest pgtype.Text
 	CreatedAt       pgtype.Timestamptz
+}
+
+type Role struct {
+	ID          int32
+	Name        string
+	Description pgtype.Text
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
+	DeletedAt   pgtype.Timestamptz
+}
+
+type User struct {
+	ID           int32
+	Username     string
+	PasswordHash string
+	CreatedAt    pgtype.Timestamptz
+	UpdatedAt    pgtype.Timestamptz
+	DeletedAt    pgtype.Timestamptz
+}
+
+type UserRole struct {
+	UserID int32
+	RoleID int32
 }

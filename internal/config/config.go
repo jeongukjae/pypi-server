@@ -3,6 +3,7 @@ package config
 import (
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
@@ -54,6 +55,10 @@ type Config struct {
 	Database DatabaseConfig `mapstructure:"database"`
 
 	LogLevel string `mapstructure:"log_level"`
+
+	// These are for initial user creation.
+	Username string `mapstructure:"username"`
+	Password string `mapstructure:"password"`
 }
 
 func MustInit(configFilePath *string) *Config {
@@ -69,6 +74,9 @@ func MustInit(configFilePath *string) *Config {
 
 	viper.SetDefault("database.migration_path", "./queries/migrations")
 	viper.SetDefault("database.migration_table_name", "_migrations")
+
+	viper.SetDefault("username", "admin")
+	viper.SetDefault("password", uuid.NewString())
 
 	viper.AutomaticEnv()
 	viper.EnvKeyReplacer(strings.NewReplacer("-", "_"))
