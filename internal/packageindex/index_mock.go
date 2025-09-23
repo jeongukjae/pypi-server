@@ -57,10 +57,10 @@ func (mr *MockIndexMockRecorder) DownloadFile(ctx, packageName, fileName any) *g
 }
 
 // ListPackageFiles mocks base method.
-func (m *MockIndex) ListPackageFiles(ctx context.Context, packageName string) ([]PackageFile, error) {
+func (m *MockIndex) ListPackageFiles(ctx context.Context, packageName string) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListPackageFiles", ctx, packageName)
-	ret0, _ := ret[0].([]PackageFile)
+	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -87,15 +87,15 @@ func (mr *MockIndexMockRecorder) ListPackages(ctx any) *gomock.Call {
 }
 
 // UploadFile mocks base method.
-func (m *MockIndex) UploadFile(ctx context.Context, req UploadFileRequest, content io.Reader) error {
+func (m *MockIndex) UploadFile(ctx context.Context, auth Authorization, req UploadFileRequest, content io.Reader) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UploadFile", ctx, req, content)
+	ret := m.ctrl.Call(m, "UploadFile", ctx, auth, req, content)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UploadFile indicates an expected call of UploadFile.
-func (mr *MockIndexMockRecorder) UploadFile(ctx, req, content any) *gomock.Call {
+func (mr *MockIndexMockRecorder) UploadFile(ctx, auth, req, content any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadFile", reflect.TypeOf((*MockIndex)(nil).UploadFile), ctx, req, content)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadFile", reflect.TypeOf((*MockIndex)(nil).UploadFile), ctx, auth, req, content)
 }
