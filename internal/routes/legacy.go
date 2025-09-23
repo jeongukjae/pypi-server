@@ -1,7 +1,9 @@
 package routes
 
 import (
+	"encoding/base64"
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
@@ -42,6 +44,16 @@ type UploadFilePayload struct {
 
 func UploadFile(index packageindex.Index) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		authorization := c.Request().Header.Get("Authorization")
+		if authorization == "" {
+			return c.JSON(http.StatusUnauthorized, &HTTPError{Message: "Unauthorized", Errors: []string{"Authorization header is required"}})
+		}
+
+		username, password, err := parseAuthorization(authorization)
+		if err != nil {
+			return c.JSON(err.(*echo.HTTPError).Code, &HTTPError{Message: "Unauthorized", Errors: []string{err.Error()}})
+		}
+
 		var payload UploadFilePayload
 		if err := c.Bind(&payload); err != nil {
 			return c.JSON(http.StatusBadRequest, &HTTPError{Message: "Invalid request", Errors: []string{err.Error()}})
@@ -68,27 +80,52 @@ func UploadFile(index packageindex.Index) echo.HandlerFunc {
 
 		log.Ctx(c.Request().Context()).Debug().Str("package", payload.Name).Str("version", payload.Version).Str("file", formFile.Filename).Msg("Uploading file")
 
-		err = index.UploadFile(c.Request().Context(), packageindex.UploadFileRequest{
-			PackageName:            payload.Name,
-			Version:                payload.Version,
-			FileName:               formFile.Filename,
-			FileType:               payload.FileType,
-			MetadataVersion:        payload.MetadataVersion,
-			Summary:                payload.Summary,
-			Description:            payload.Description,
-			DescriptionContentType: payload.DescriptionContentType,
-			Pyversion:              payload.PyVersion,
-			RequiresPython:         payload.PyVersion,
-			RequiresDist:           payload.RequiresDist,
-			Md5Digest:              payload.Md5Digest,
-			Sha256Digest:           payload.Sha256Digest,
-			Blake2256Digest:        payload.Blake2_256Digest,
-		}, file)
-		if err != nil {
+		if err := index.UploadFile(
+			c.Request().Context(),
+			packageindex.Authorization{
+				Username: username,
+				Password: password,
+			},
+			packageindex.UploadFileRequest{
+				PackageName:            payload.Name,
+				Version:                payload.Version,
+				FileName:               formFile.Filename,
+				FileType:               payload.FileType,
+				MetadataVersion:        payload.MetadataVersion,
+				Summary:                payload.Summary,
+				Description:            payload.Description,
+				DescriptionContentType: payload.DescriptionContentType,
+				Pyversion:              payload.PyVersion,
+				RequiresPython:         payload.PyVersion,
+				RequiresDist:           payload.RequiresDist,
+				Md5Digest:              payload.Md5Digest,
+				Sha256Digest:           payload.Sha256Digest,
+				Blake2256Digest:        payload.Blake2_256Digest,
+			},
+			file,
+		); err != nil {
 			return c.JSON(http.StatusInternalServerError, &HTTPError{Message: "Failed to upload file", Errors: []string{err.Error()}})
 		}
 
 		log.Ctx(c.Request().Context()).Info().Str("package", payload.Name).Str("version", payload.Version).Str("file", formFile.Filename).Msg("File uploaded")
 		return c.JSON(http.StatusOK, map[string]string{"status": "success"})
 	}
+}
+
+func parseAuthorization(authorization string) (string, string, error) {
+	if authorization == "" {
+		return "", "", echo.NewHTTPError(http.StatusUnauthorized, "Authorization header is required")
+	}
+
+	decoded, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(authorization, "Basic "))
+	if err != nil {
+		return "", "", echo.NewHTTPError(http.StatusBadRequest, "Invalid Authorization header")
+	}
+
+	parts := strings.SplitN(string(decoded), ":", 2)
+	if len(parts) != 2 {
+		return "", "", echo.NewHTTPError(http.StatusBadRequest, "Invalid Authorization header format")
+	}
+
+	return parts[0], parts[1], nil
 }

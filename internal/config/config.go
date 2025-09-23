@@ -3,7 +3,6 @@ package config
 import (
 	"strings"
 
-	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 )
@@ -37,28 +36,11 @@ type StorageConfig struct {
 	S3    S3Config    `mapstructure:"s3"`
 }
 
-type DatabaseConfig struct {
-	Host     string `mapstructure:"host"`
-	Port     int    `mapstructure:"port"`
-	User     string `mapstructure:"user"`
-	Password string `mapstructure:"password"`
-	DBName   string `mapstructure:"dbname"`
-	SSLMode  string `mapstructure:"sslmode"`
-
-	MigrationPath      string `mapstructure:"migration_path"`
-	MigrationTableName string `mapstructure:"migration_table_name"`
-}
-
 type Config struct {
-	Server   ServerConfig   `mapstructure:"server"`
-	Storage  StorageConfig  `mapstructure:"storage"`
-	Database DatabaseConfig `mapstructure:"database"`
+	Server  ServerConfig  `mapstructure:"server"`
+	Storage StorageConfig `mapstructure:"storage"`
 
 	LogLevel string `mapstructure:"log_level"`
-
-	// These are for initial user creation.
-	Username string `mapstructure:"username"`
-	Password string `mapstructure:"password"`
 }
 
 func MustInit(configFilePath *string) *Config {
@@ -70,13 +52,6 @@ func MustInit(configFilePath *string) *Config {
 	viper.SetDefault("server.enable_access_logger", true)
 	viper.SetDefault("storage.kind", "local")
 	viper.SetDefault("storage.local.path", "./data")
-	viper.SetDefault("database.enabled", false)
-
-	viper.SetDefault("database.migration_path", "./queries/migrations")
-	viper.SetDefault("database.migration_table_name", "_migrations")
-
-	viper.SetDefault("username", "admin")
-	viper.SetDefault("password", uuid.NewString())
 
 	viper.AutomaticEnv()
 	viper.EnvKeyReplacer(strings.NewReplacer("-", "_"))

@@ -19,7 +19,6 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/jeongukjae/pypi-server/internal/config"
-	"github.com/jeongukjae/pypi-server/internal/db"
 	internalMw "github.com/jeongukjae/pypi-server/internal/middleware"
 	"github.com/jeongukjae/pypi-server/internal/packageindex"
 	"github.com/jeongukjae/pypi-server/internal/routes"
@@ -45,12 +44,7 @@ func main() { //nolint:funlen // Function length is acceptable here for the sake
 		log.Fatal().Err(err).Msg("Failed to initialize storage")
 	}
 
-	dbstore, err := initializeDBStore(ctx, cfg)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to initialize database")
-	}
-
-	index := packageindex.NewIndex(strg, dbstore)
+	index := packageindex.NewIndex(strg)
 
 	e := echo.New()
 	e.HideBanner = true
@@ -93,39 +87,7 @@ func main() { //nolint:funlen // Function length is acceptable here for the sake
 		log.Error().Err(err).Msg("Error closing storage")
 	}
 
-	log.Info().Msg("Closing database")
-	if err := dbstore.Close(ctx); err != nil {
-		log.Error().Err(err).Msg("Error closing database")
-	}
-
 	log.Info().Msg("Server stopped")
-}
-
-func initializeDBStore(ctx context.Context, cfg *config.Config) (db.Store, error) {
-	dbstore, err := db.NewStore(ctx, &cfg.Database)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Info().Msg("Migrating database")
-	if err := dbstore.Migrate(ctx, cfg.Database.MigrationPath); err != nil {
-		return nil, err
-	}
-
-	if _, err = dbstore.GetUserByUsername(ctx, cfg.Username); err != nil {
-		if !errors.Is(err, db.ErrNoRows) {
-			return nil, errors.Wrap(err, "failed to get user by username")
-		}
-
-		log.Info().Msgf("Creating initial user: %s", cfg.Username)
-		createdUser, err := dbstore.CreateUser(ctx, cfg.Username, cfg.Password, db.RoleAdmin)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to create initial user")
-		}
-		log.Info().Msgf("Initial user created (Only shown once): ID=%d, Username=%s, Password=%s", createdUser.ID, createdUser.Username, cfg.Password)
-	}
-
-	return dbstore, nil
 }
 
 func accessLogger() echo.MiddlewareFunc {

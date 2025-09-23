@@ -1,9 +1,7 @@
 package routes
 
 import (
-	"fmt"
 	"net/http"
-	"net/url"
 
 	"github.com/labstack/echo/v4"
 	"github.com/rs/zerolog/log"
@@ -52,16 +50,7 @@ func ListPackageFiles(index packageindex.Index) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, &HTTPError{Message: "Failed to list package files", Errors: []string{err.Error()}})
 		}
 		for _, file := range files {
-			html += `<a href="/simple/` + packageName + `/` + file.FileName
-			if file.HashType != nil && file.HashValue != nil {
-				html += fmt.Sprintf(`#%s=%s`, *file.HashType, *file.HashValue)
-			}
-			html += `"`
-			if file.RequiresPython != nil {
-				html += fmt.Sprintf(` data-requires-python="%s"`, url.QueryEscape(*file.RequiresPython))
-			}
-			html += fmt.Sprintf(` data-gpg-sig="%t"`, file.HasGpgSignature)
-			html += `>` + file.FileName + `</a><br/>`
+			html += `<a href="/simple/` + packageName + `/` + file + `">` + file + `</a><br/>`
 		}
 		html += "</body></html>"
 
