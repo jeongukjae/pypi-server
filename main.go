@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	htpasswd "github.com/tg123/go-htpasswd"
 
 	"github.com/jeongukjae/pypi-server/internal/config"
 	internalMw "github.com/jeongukjae/pypi-server/internal/middleware"
@@ -42,6 +43,11 @@ func main() { //nolint:funlen // Function length is acceptable here for the sake
 		log.Fatal().Err(err).Msg("Failed to initialize storage")
 	}
 
+	authFile, err := htpasswd.New(cfg.HTPasswd, []htpasswd.PasswdParser{htpasswd.AcceptBcrypt}, nil)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to load htpasswd file")
+	}
+
 	index := packageindex.NewIndex(strg)
 
 	e := echo.New()
@@ -51,6 +57,7 @@ func main() { //nolint:funlen // Function length is acceptable here for the sake
 	e.Use(middleware.Recover())
 	e.Use(middleware.RequestID())
 	e.Use(internalMw.Logger())
+	e.Use(internalMw.Authorizer(authFile))
 
 	if cfg.Server.EnableAccessLogger {
 		e.Use(accessLogger())

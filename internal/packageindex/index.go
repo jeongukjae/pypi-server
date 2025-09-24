@@ -55,8 +55,7 @@ type Index interface {
 	ListPackages(ctx context.Context) ([]string, error)
 	ListPackageFiles(ctx context.Context, packageName string) ([]string, error)
 	DownloadFile(ctx context.Context, packageName, fileName string) (io.ReadCloser, error)
-
-	UploadFile(ctx context.Context, auth Authorization, req UploadFileRequest, content io.Reader) error
+	UploadFile(ctx context.Context, req *UploadFileRequest, content io.Reader) error
 }
 
 func NewIndex(strg storage.Storage) Index {
@@ -90,7 +89,7 @@ func (i *index) DownloadFile(ctx context.Context, packageName, fileName string) 
 	return i.strg.ReadFile(ctx, path.Join(packageName, fileName))
 }
 
-func (i *index) UploadFile(ctx context.Context, auth Authorization, req UploadFileRequest, content io.Reader) error {
+func (i *index) UploadFile(ctx context.Context, req *UploadFileRequest, content io.Reader) error {
 	filepath := path.Join(req.PackageName, req.FileName)
 	if err := i.strg.WriteFile(ctx, filepath, content); err != nil {
 		log.Ctx(ctx).Error().Err(err).Msg("failed to write file to storage")

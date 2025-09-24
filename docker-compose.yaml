@@ -1,16 +1,4 @@
 services:
-  db:
-    image: postgres:14-alpine
-    restart: always
-    environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: mydatabase
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
   minio:
     image: minio/minio
     restart: always
@@ -25,5 +13,4 @@ services:
       - minio_data:/data
 
 volumes:
-  postgres_data:
   minio_data:

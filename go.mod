@@ -21,6 +21,7 @@ require (
 	github.com/rs/zerolog v1.34.0
 	github.com/spf13/viper v1.12.0
 	github.com/stretchr/testify v1.10.0
+	github.com/tg123/go-htpasswd v1.2.4
 	go.uber.org/mock v0.6.0
 )
 
@@ -39,6 +40,7 @@ require (
 	github.com/Antonboom/testifylint v1.6.1 // indirect
 	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/Djarvur/go-err113 v0.0.0-20210108212216-aea10b59be24 // indirect
+	github.com/GehirnInc/crypt v0.0.0-20230320061759-8cc1b52080c5 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.3.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect

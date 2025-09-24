@@ -40,7 +40,6 @@ func ListPackages(index packageindex.Index) echo.HandlerFunc {
 func ListPackageFiles(index packageindex.Index) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		packageName := c.Param("package")
-
 		// Change to string builder if performance becomes an issue.
 
 		html := "<!DOCTYPE html><html><body>"
@@ -64,7 +63,6 @@ func DownloadFile(index packageindex.Index) echo.HandlerFunc {
 		fileName := c.Param("file")
 
 		log.Ctx(c.Request().Context()).Debug().Str("package", packageName).Str("file", fileName).Msg("Downloading file")
-
 		rc, err := index.DownloadFile(c.Request().Context(), packageName, fileName)
 		if err != nil {
 			log.Ctx(c.Request().Context()).Error().Err(err).Msg("Failed to read file")
