@@ -43,9 +43,12 @@ func main() { //nolint:funlen // Function length is acceptable here for the sake
 		log.Fatal().Err(err).Msg("Failed to initialize storage")
 	}
 
-	authFile, err := htpasswd.New(cfg.HTPasswd, []htpasswd.PasswdParser{htpasswd.AcceptBcrypt}, nil)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to load htpasswd file")
+	var authFile *htpasswd.File
+	if cfg.HTPasswd != nil && *cfg.HTPasswd != "" {
+		authFile, err = htpasswd.New(*cfg.HTPasswd, []htpasswd.PasswdParser{htpasswd.AcceptBcrypt}, nil)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to load htpasswd file")
+		}
 	}
 
 	index := packageindex.NewIndex(strg)

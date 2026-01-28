@@ -33,6 +33,10 @@ func GetUserInfo(ctx context.Context) *AuthInfo {
 func Authorizer(authFile *htpasswd.File) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			if authFile == nil {
+				return next(c)
+			}
+
 			authorization := c.Request().Header.Get("Authorization")
 			if authorization == "" {
 				return c.JSON(http.StatusUnauthorized, map[string]string{"message": "No Authorization header"})

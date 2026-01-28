@@ -40,8 +40,8 @@ type Config struct {
 	Server  ServerConfig  `mapstructure:"server"`
 	Storage StorageConfig `mapstructure:"storage"`
 
-	LogLevel string `mapstructure:"log_level"`
-	HTPasswd string `mapstructure:"htpasswd"`
+	LogLevel string  `mapstructure:"log_level"`
+	HTPasswd *string `mapstructure:"htpasswd"`
 }
 
 func MustInit(configFilePath *string) *Config {
@@ -53,7 +53,6 @@ func MustInit(configFilePath *string) *Config {
 	viper.SetDefault("server.enable_access_logger", true)
 	viper.SetDefault("storage.kind", "local")
 	viper.SetDefault("storage.local.path", "./data")
-	viper.SetDefault("htpasswd", "./htpasswd")
 
 	viper.AutomaticEnv()
 	viper.EnvKeyReplacer(strings.NewReplacer("-", "_"))
